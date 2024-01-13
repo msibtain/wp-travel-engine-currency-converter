@@ -298,6 +298,8 @@ class CurrencyConverter
             add_action( 'wp_enqueue_scripts', [$this, 'i_custom_styles'] );
             add_action( 'wp_footer', [$this, 'i_wp_footer'] );
         }
+
+        add_action( 'wp_footer', [$this, 'i_cat_links_in_new_tab'] );
         
     }
 
@@ -310,7 +312,9 @@ class CurrencyConverter
     function i_wp_footer() {
         ?>
         <script>
-            jQuery(document).ready(function(){
+            var iCurrency = "<?php echo $this->currency ?>";
+            var iCurrencySymbol = "<?php echo $this->currency_symbol ?>";
+            jQuery(document).ready(function($){
                 var currency_api = getCookie("currency_api_pas");
                 if (currency_api)
                 {
@@ -379,9 +383,67 @@ class CurrencyConverter
                     replacePrice(this, false);
                 });
 
+                <?php if (!is_front_page()) { ?>
                 var actual_price = jQuery('.actual-price');
                 jQuery.each(actual_price, function(index, value){
                     replacePrice(this, true);
+                });
+                <?php } ?>
+
+                /*
+                $(window).on('DOMContentLoaded', function(){
+                    
+                    
+
+                    $('.wpte-price amount').on('change', function(){
+
+                        console.log('date changed in booking cal');
+
+                        $('.wpte-currency-code').html("<?php echo $this->currency_symbol ?> ");
+                        var wpte_price = jQuery('.wpte-price');
+                        jQuery.each(wpte_price, function(index, value){
+                            replacePrice(this, false);
+                        });
+
+                    })
+                });
+
+                $('#open-booking-modal').on('click', function(){
+
+                    console.log('booking modal button clicked');
+
+                    $('.wpte-currency-code').html("<?php echo $this->currency_symbol ?> ");
+                    
+                    var wpte_price = jQuery('.wpte-price');
+                    jQuery.each(wpte_price, function(index, value){
+                        replacePrice(this, false);
+                    });
+
+                    // flatpickr-monthDropdown-months change
+                    // flatpickr-days click
+                    // fancybox-container-2 focus
+
+                    $('.flatpickr-days').on('click', function(){
+                        console.log('date clicked...');
+                        $('.wpte-currency-code').html("<?php echo $this->currency_symbol ?> ");
+                    
+                        var wpte_price = jQuery('.wpte-price');
+                        jQuery.each(wpte_price, function(index, value){
+                            replacePrice(this, false);
+                        });
+
+                    });
+                    
+                    $(document).on('wteEditPackageRender', function(){
+                        console.log( 'wte edit package... ' );
+                    })
+                });
+                */
+
+                /* following event will be triggerred when payment method is changed on checkout page */
+                $('input[name=wpte_checkout_paymnet_method]').on('change', function(){
+                        var wpte_price_wrap = $('.wpte-price-wrap');
+                        replacePrice(wpte_price_wrap, true); 
                 });
 
             });
@@ -406,6 +468,22 @@ class CurrencyConverter
     {
         $base_currency = "EUR";
         return $base_currency;
+    }
+
+    function i_cat_links_in_new_tab() {
+        ?>
+        <script>
+            jQuery(document).ready(function(){
+
+                var category_trip_title = jQuery('.category-trip-title a');
+                jQuery.each(category_trip_title, function(index, value){
+                    jQuery(this).attr('target', '_blank');
+                });
+
+            });
+
+        </script>
+        <?php
     }
 
 }
