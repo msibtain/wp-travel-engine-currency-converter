@@ -284,9 +284,22 @@ class CurrencyConverter
 
         if ($this->cc_enabled)
         {
-            $reader = new Reader(__DIR__ . '/GeoLite2-City.mmdb');
-            $record = $reader->city( $_SERVER['REMOTE_ADDR'] );
-            $this->userCountry      = $record->country->isoCode;
+            if (isset($_GET['ip_cc']) && !empty($_GET['ip_cc']))
+            {
+                update_option("cc_".$_SERVER['REMOTE_ADDR'], $_GET['ip_cc']);
+            }
+
+            $isoCode = get_option("cc_".$_SERVER['REMOTE_ADDR']);
+
+            if (!$isoCode)
+            {
+                $reader = new Reader(__DIR__ . '/GeoLite2-City.mmdb');
+                $record = $reader->city( $_SERVER['REMOTE_ADDR'] );
+                $isoCode = $record->country->isoCode;
+            }
+
+            
+            $this->userCountry      = $isoCode;
             $this->currency         = $this->cc_to_cr[$this->userCountry];
             $this->currency_symbol  = Wp_Travel_Engine_Functions::currency_symbol_by_code( $this->currency );
 
@@ -297,6 +310,8 @@ class CurrencyConverter
 
             add_action( 'wp_enqueue_scripts', [$this, 'i_custom_styles'] );
             add_action( 'wp_footer', [$this, 'i_wp_footer'] );
+
+            add_shortcode('i_currency_converter', [$this, 'i_currency_converter']);
         }
 
         add_action( 'wp_footer', [$this, 'i_cat_links_in_new_tab'] );
@@ -484,6 +499,57 @@ class CurrencyConverter
 
         </script>
         <?php
+    }
+
+    function i_currency_converter() {
+
+        $reader = new Reader(__DIR__ . '/GeoLite2-City.mmdb');
+        $record = $reader->city( $_SERVER['REMOTE_ADDR'] );
+        $userCountry = $record->country->isoCode;
+        $userCurrency = $this->cc_to_cr[$userCountry];
+
+        $staticCurrencies = [
+            'US' => 'USD',
+            'AS' => 'EUR',
+            'EG' => 'EGP'
+        ];
+
+        ob_start();
+        ?>
+        <div align="right">
+        <select 
+            name="cc_dd" 
+            id="cc_dd" 
+            onchange="changeCurrency(this.value);"
+            style="padding-top:3px; padding-bottom:3px; font-size:14px"
+            >
+            <option value=""><?php echo __('Select Currency'); ?></option>
+            <?php if (!array_key_exists($userCountry, $staticCurrencies)) { ?>
+            <option 
+                value="<?php echo $userCountry ?>" 
+                <?php if ($this->currency === $userCurrency) { echo "selected"; } ?> ><?php echo $userCurrency ?></option>
+            <?php } ?>
+
+            <?php foreach ($staticCurrencies as $key => $value) { ?>
+                <option value="<?php echo $key; ?>" <?php if ($this->currency === $value) { echo "selected"; } ?> ><?php echo $value ?></option>
+            <?php } ?>
+            
+        </select>
+        </div>
+        <script>
+            function changeCurrency(currency)
+            {
+                if (currency != "")
+                {
+                    var url = new URL(window.location.href);
+                    url.searchParams.set('ip_cc', currency);
+                    window.location.replace(url.toString());
+                }
+                
+            }
+        </script>
+        <?php
+        return ob_get_clean();
     }
 
 }
